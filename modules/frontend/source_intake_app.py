@@ -13,10 +13,16 @@ from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any, Callable
+from urllib.parse import unquote, urlsplit
 
 from modules.data_platform.catalog import SourceCatalog
 from modules.data_platform.storage import FileSystemArtifactStore
 from modules.data_platform.workflows import persist_source_manifest
+from modules.knowledge_processing.storage import (
+    KnowledgeArtifactStore,
+    KnowledgeCorrectionStore,
+)
+from modules.knowledge_processing.workflows import process_catalog_source
 from modules.source_intake.contracts import (
     AcquisitionPlan,
     SourceKind,
@@ -35,6 +41,7 @@ class AppConfig:
     intake_root: Path
     durable_root: Path
     catalog_path: Path
+    knowledge_root: Path | None = None
 
     @classmethod
     def from_project_root(cls, project_root: Path) -> "AppConfig":
@@ -43,6 +50,7 @@ class AppConfig:
             intake_root=root / "data" / "raw" / "source_intake",
             durable_root=root / "data" / "artifacts",
             catalog_path=root / "data" / "catalog" / "source_catalog.sqlite3",
+            knowledge_root=root / "data" / "knowledge",
         )
 
 
@@ -59,9 +67,21 @@ class SourceIntakeApplication:
         self.agent = SourceAcquisitionAgent(self.registry, downloader_factory)
         self.store = FileSystemArtifactStore(config.durable_root)
         self.catalog = SourceCatalog(config.catalog_path)
+        knowledge_root = config.knowledge_root or config.durable_root.parent / "knowledge"
+        self.knowledge_store = KnowledgeArtifactStore(knowledge_root)
+        self.correction_store = KnowledgeCorrectionStore(knowledge_root)
         self.downloader_factory = downloader_factory
         self._batch_lock = threading.Lock()
         self._batch_status: dict[str, Any] = {
+            "running": False,
+            "total": 0,
+            "completed": 0,
+            "failed": 0,
+            "current_source_id": None,
+            "message": "",
+        }
+        self._knowledge_lock = threading.Lock()
+        self._knowledge_status: dict[str, Any] = {
             "running": False,
             "total": 0,
             "completed": 0,
@@ -77,6 +97,8 @@ class SourceIntakeApplication:
             readiness_counts[source.readiness] = readiness_counts.get(source.readiness, 0) + 1
         with self._batch_lock:
             processing = dict(self._batch_status)
+        with self._knowledge_lock:
+            knowledge_processing = dict(self._knowledge_status)
         return {
             "module": "source_intake",
             "module_version": "1.1.0",
@@ -90,6 +112,8 @@ class SourceIntakeApplication:
                 "readiness": readiness_counts,
             },
             "processing": processing,
+            "knowledge_processing": knowledge_processing,
+            "knowledge": self.knowledge_status(),
             "sources": [
                 {
                     "source_id": source.source_id,
@@ -115,6 +139,144 @@ class SourceIntakeApplication:
                 for source in sources
             ],
         }
+
+    def knowledge_status(self) -> dict[str, Any]:
+        summaries = self.catalog.list_sources()
+        sources = []
+        for source in summaries:
+            available = self.knowledge_store.exists(source.source_id)
+            artifact_summary: dict[str, Any] = {
+                "knowledge_available": available,
+                "correction_count": self.correction_store.count(source.source_id),
+            }
+            if available:
+                artifact = self.knowledge_store.load(source.source_id)
+                artifact_summary.update(
+                    {
+                        "pipeline_version": artifact.get("pipeline_version"),
+                        "chunks_count": len(artifact.get("chunks", [])),
+                        "units_count": artifact.get("units_count", len(artifact.get("knowledge_units", []))),
+                        "title": artifact.get("timeline", {}).get("title"),
+                    }
+                )
+            sources.append(
+                {
+                    "source_id": source.source_id,
+                    "title": source.title or source.source_id,
+                    "readiness": source.readiness,
+                    **artifact_summary,
+                }
+            )
+        with self._knowledge_lock:
+            processing = dict(self._knowledge_status)
+        return {
+            "module": "knowledge_processing",
+            "module_version": "1.0.0",
+            "module_status": "stable",
+            "summary": {
+                "catalog_sources": len(summaries),
+                "processed_sources": sum(
+                    1 for source in sources if source["knowledge_available"]
+                ),
+                "corrections": sum(source["correction_count"] for source in sources),
+            },
+            "processing": processing,
+            "sources": sources,
+        }
+
+    def get_knowledge(self, source_id: str) -> dict[str, Any]:
+        artifact = self.knowledge_store.load(source_id)
+        return {
+            "source_id": source_id,
+            "artifact": artifact,
+            "corrections": self.correction_store.list(source_id),
+        }
+
+    def create_knowledge_correction(
+        self,
+        source_id: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
+        correction = self.correction_store.create(
+            source_id,
+            target_type=str(payload.get("target_type", "")),
+            target_id=str(payload.get("target_id", "")),
+            field=str(payload.get("field", "")),
+            corrected_value=payload.get("corrected_value"),
+            reason=str(payload.get("reason", "")),
+            author=str(payload.get("author") or "operator"),
+        )
+        return {
+            "correction": correction,
+            "knowledge": self.get_knowledge(source_id),
+        }
+
+    def start_knowledge_processing(self, source_id: str | None = None) -> dict[str, Any]:
+        if source_id:
+            source_ids = (source_id,)
+        else:
+            source_ids = tuple(
+                source.source_id
+                for source in self.catalog.list_sources()
+                if source.readiness == "ready"
+            )
+        with self._knowledge_lock:
+            if self._knowledge_status["running"]:
+                return dict(self._knowledge_status)
+            if not source_ids:
+                self._knowledge_status = {
+                    "running": False,
+                    "total": 0,
+                    "completed": 0,
+                    "failed": 0,
+                    "current_source_id": None,
+                    "message": "No ready knowledge sources",
+                }
+                return dict(self._knowledge_status)
+            self._knowledge_status = {
+                "running": True,
+                "total": len(source_ids),
+                "completed": 0,
+                "failed": 0,
+                "current_source_id": None,
+                "message": "Knowledge processing started",
+            }
+        threading.Thread(
+            target=self._run_knowledge_processing,
+            args=(source_ids,),
+            daemon=True,
+            name="knowledge-processing-batch",
+        ).start()
+        return dict(self._knowledge_status)
+
+    def _run_knowledge_processing(self, source_ids: tuple[str, ...]) -> None:
+        for source_id in source_ids:
+            with self._knowledge_lock:
+                self._knowledge_status["current_source_id"] = source_id
+                self._knowledge_status["message"] = f"Processing {source_id}"
+            try:
+                result = process_catalog_source(
+                    source_id,
+                    self.catalog,
+                    self.config.durable_root,
+                    self.knowledge_store,
+                )
+                with self._knowledge_lock:
+                    self._knowledge_status["completed"] += 1
+                    if result.get("status") in {"failed", "blocked"}:
+                        self._knowledge_status["failed"] += 1
+                    self._knowledge_status["message"] = (
+                        f"{result.get('status', 'unknown')}: {source_id}"
+                    )
+            except Exception as exc:
+                with self._knowledge_lock:
+                    self._knowledge_status["completed"] += 1
+                    self._knowledge_status["failed"] += 1
+                    self._knowledge_status["message"] = f"Failed {source_id}: {exc}"
+        with self._knowledge_lock:
+            self._knowledge_status["running"] = False
+            self._knowledge_status["current_source_id"] = None
+            self._knowledge_status["message"] = "Knowledge processing finished"
 
     def acquire(self, payload: dict[str, Any]) -> dict[str, Any]:
         source_id = payload.get("source_id", "")
@@ -339,22 +501,70 @@ def create_server(
             self.wfile.write(body)
 
         def do_GET(self) -> None:  # noqa: N802
-            if self.path == "/api/status":
+            path = urlsplit(self.path).path
+            if path == "/api/status":
                 self._send_json(application.status())
                 return
-            if self.path == "/":
+            if path == "/api/knowledge/status":
+                self._send_json(application.knowledge_status())
+                return
+            if path.startswith("/api/knowledge/"):
+                source_id = unquote(path.removeprefix("/api/knowledge/")).strip("/")
+                if source_id and "/" not in source_id:
+                    try:
+                        self._send_json(application.get_knowledge(source_id))
+                    except FileNotFoundError:
+                        self._send_json({"error": "knowledge artifact not found"}, HTTPStatus.NOT_FOUND)
+                    except ValueError as exc:
+                        self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                    return
+            if path == "/":
                 self._send_file(static_root / "index.html", "text/html; charset=utf-8")
                 return
-            if self.path == "/static/app.js":
+            if path == "/static/app.js":
                 self._send_file(static_root / "app.js", "text/javascript; charset=utf-8")
                 return
-            if self.path == "/static/styles.css":
+            if path == "/static/styles.css":
                 self._send_file(static_root / "styles.css", "text/css; charset=utf-8")
                 return
             self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
 
         def do_POST(self) -> None:  # noqa: N802
-            if self.path == "/api/source-intake/upload":
+            path = urlsplit(self.path).path
+            if path == "/api/knowledge/process":
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length > 64 * 1024:
+                        raise ValueError("request is too large")
+                    payload = json.loads(self.rfile.read(length).decode("utf-8") or "{}")
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be an object")
+                    self._send_json(
+                        application.start_knowledge_processing(payload.get("source_id")),
+                        HTTPStatus.ACCEPTED,
+                    )
+                except (ValueError, KeyError, json.JSONDecodeError) as exc:
+                    self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                return
+            if path.startswith("/api/knowledge/") and path.endswith("/corrections"):
+                source_id = unquote(path.removeprefix("/api/knowledge/").removesuffix("/corrections")).strip("/")
+                try:
+                    length = int(self.headers.get("Content-Length", "0"))
+                    if length > 128 * 1024:
+                        raise ValueError("request is too large")
+                    payload = json.loads(self.rfile.read(length).decode("utf-8"))
+                    if not isinstance(payload, dict):
+                        raise ValueError("request body must be an object")
+                    self._send_json(
+                        application.create_knowledge_correction(source_id, payload),
+                        HTTPStatus.CREATED,
+                    )
+                except (ValueError, KeyError, json.JSONDecodeError) as exc:
+                    self._send_json({"error": str(exc)}, HTTPStatus.BAD_REQUEST)
+                except FileNotFoundError:
+                    self._send_json({"error": "knowledge artifact not found"}, HTTPStatus.NOT_FOUND)
+                return
+            if path == "/api/source-intake/upload":
                 try:
                     length = int(self.headers.get("Content-Length", "0"))
                     if length > 512 * 1024 * 1024:
@@ -384,10 +594,10 @@ def create_server(
                 except Exception as exc:
                     self._send_json({"error": str(exc)}, HTTPStatus.INTERNAL_SERVER_ERROR)
                 return
-            if self.path == "/api/source-intake/process-all":
+            if path == "/api/source-intake/process-all":
                 self._send_json(application.start_batch_processing(), HTTPStatus.ACCEPTED)
                 return
-            if self.path != "/api/source-intake/acquire":
+            if path != "/api/source-intake/acquire":
                 self._send_json({"error": "not found"}, HTTPStatus.NOT_FOUND)
                 return
             try:

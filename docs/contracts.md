@@ -15,8 +15,9 @@ They are not only prose documentation.
 - `knowledge_processing` provides a canonical timeline shape, optional
   frame/OCR evidence, and append-only advisory knowledge artifacts with source
   provenance, relevance scores and quality reports.
-- `frontend` consumes the source-intake and data-platform interfaces; it does
-  not define provider or trading contracts.
+- `frontend` consumes the source-intake, data-platform and knowledge-processing
+  interfaces; it exposes operator status, exploration and append-only
+  correction workflows but does not define provider or trading contracts.
 
 ## Contract rules
 
@@ -33,6 +34,9 @@ They are not only prose documentation.
 - Knowledge persistence keeps the latest projection at
   `data/knowledge/<source_id>/knowledge.json` and appends changed projections
   to its history directory. Reprocessing identical input is idempotent.
+- Operator corrections are appended to a separate
+  `data/knowledge/<source_id>/corrections.jsonl` record. They never mutate raw
+  sources or generated knowledge projections.
 
 The first implementation keeps contracts in source code next to their owning
 module. This document explains their role; it is not a duplicate definition

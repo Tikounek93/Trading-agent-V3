@@ -3,78 +3,125 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Trading Agent | Source intake</title>
+  <title>Trading Agent | User App</title>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <div>
-      <p class="eyebrow">Trading Agent v3</p>
-      <h1>Source intake</h1>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand-mark">TA</span>
+        <div><strong>Trading Agent</strong><small>v3 workspace</small></div>
+      </div>
+      <nav class="main-nav" aria-label="Main navigation">
+        <p class="nav-label">Workspace</p>
+        <button class="nav-item active" data-view="overview"><span>Overview</span></button>
+        <button class="nav-item" data-view="source-intake"><span>Source Intake</span><small>1.1.0</small></button>
+        <button class="nav-item" data-view="knowledge"><span>Knowledge Processing</span><small>1.0.0</small></button>
+        <button class="nav-item" data-view="corrections"><span>Corrections</span></button>
+        <button class="nav-item" data-view="history"><span>Processing History</span></button>
+
+        <p class="nav-label">Strategy</p>
+        <button class="nav-item planned" disabled><span>Knowledge Base</span><small>Planned</small></button>
+        <button class="nav-item planned" disabled><span>Strategy Blueprint</span><small>Planned</small></button>
+        <button class="nav-item planned" disabled><span>Strategy Builder</span><small>Planned</small></button>
+
+        <p class="nav-label">Trading</p>
+        <button class="nav-item planned" disabled><span>Market Analysis</span><small>Planned</small></button>
+        <button class="nav-item planned" disabled><span>Setup Candidates</span><small>Planned</small></button>
+        <button class="nav-item planned" disabled><span>Trading Journal</span><small>Planned</small></button>
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot" id="connection-dot"></span>
+        <span id="connection-label">Connecting</span>
+      </div>
+    </aside>
+
+    <div class="app-main">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="view-kicker">Workspace</p>
+          <h1 id="view-title">Overview</h1>
+        </div>
+        <div class="topbar-actions">
+          <span class="status-chip" id="module-status">Checking status</span>
+          <button class="icon-button" id="refresh" type="button" title="Refresh data" aria-label="Refresh data">↻</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="view active" id="view-overview">
+          <div class="view-intro">
+            <div><p class="eyebrow">System workspace</p><h2>Current state</h2></div>
+            <p class="muted">A single place to inspect source intake and prepared knowledge.</p>
+          </div>
+          <div class="metrics overview-metrics">
+            <div class="metric"><span>Catalog sources</span><strong id="overview-sources">0</strong></div>
+            <div class="metric"><span>Knowledge artifacts</span><strong id="overview-processed">0</strong></div>
+            <div class="metric"><span>Corrections</span><strong id="overview-corrections">0</strong></div>
+            <div class="metric"><span>Ready for processing</span><strong id="overview-ready">0</strong></div>
+          </div>
+          <div class="overview-grid">
+            <section class="panel activity-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Module status</p><h2>Workspace modules</h2></div></div>
+              <div class="module-status-list" id="module-status-list"></div>
+            </section>
+            <section class="panel quick-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Shortcuts</p><h2>Continue working</h2></div></div>
+              <div class="quick-actions">
+                <button type="button" data-go-view="source-intake">Open Source Intake</button>
+                <button type="button" data-go-view="knowledge">Browse Knowledge</button>
+                <button class="secondary" type="button" data-go-view="corrections">Review Corrections</button>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-source-intake">
+          <div class="view-intro"><div><p class="eyebrow">Source Intake</p><h2>Acquire and inspect sources</h2></div><p class="muted">Register sources, acquire artifacts and check readiness.</p></div>
+          <div class="workspace source-workspace">
+            <section class="panel form-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Acquire source</p><h2>Register a knowledge source</h2></div></div>
+              <form id="acquisition-form">
+                <label>Source ID<input name="source_id" required pattern="[A-Za-z0-9_.-]+" placeholder="video_001"></label>
+                <label>Title<input name="title" placeholder="Optional title"></label>
+                <label>Type<select name="kind" id="source-kind"><option value="video">Video</option><option value="document">Document</option><option value="note">Note</option><option value="image">Image</option><option value="url">URL</option></select></label>
+                <fieldset class="mode-fieldset"><legend>Source input</legend><div class="mode-control"><label class="mode-option"><input type="radio" name="source_mode" value="url" checked> URL</label><label class="mode-option"><input type="radio" name="source_mode" value="local"> Local file</label></div><label id="url-input-group">URL or locator<input name="locator" id="locator" type="url" placeholder="https://..."></label><label id="file-input-group" hidden>Local file<input name="file" id="local-file" type="file"></label></fieldset>
+                <fieldset id="operations-fieldset"><legend>Operations</legend><label class="check"><input type="checkbox" name="download_video" checked> Download video</label><label class="check"><input type="checkbox" name="fetch_metadata" checked> Fetch metadata</label><label class="check"><input type="checkbox" name="fetch_subtitles" checked> Fetch subtitles</label></fieldset>
+                <button type="submit">Run acquisition</button><p class="form-message" id="form-message" role="status"></p>
+              </form>
+            </section>
+            <section class="panel sources-panel">
+              <div class="panel-heading"><div><p class="eyebrow">Persisted catalog</p><h2>Sources and readiness</h2></div><div class="panel-actions"><button id="process-all" type="button">Process pending</button></div></div>
+              <div class="table-wrap"><table><thead><tr><th>Source</th><th>Type</th><th>Readiness</th><th>Artifacts</th><th>Inspected</th></tr></thead><tbody id="source-rows"><tr><td colspan="5" class="empty">No sources registered yet.</td></tr></tbody></table></div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="view-knowledge">
+          <div class="view-intro"><div><p class="eyebrow">Knowledge Processing</p><h2>Prepared knowledge artifacts</h2></div><div class="panel-actions"><button id="process-knowledge" type="button">Process ready sources</button></div></div>
+          <div class="metrics compact-metrics"><div class="metric"><span>Catalog sources</span><strong id="knowledge-sources">0</strong></div><div class="metric"><span>Processed</span><strong id="knowledge-processed">0</strong></div><div class="metric"><span>Corrections</span><strong id="knowledge-corrections">0</strong></div><div class="metric"><span>Processing</span><strong id="knowledge-progress">Idle</strong></div></div>
+          <div class="knowledge-layout">
+            <section class="panel knowledge-list-panel"><div class="panel-heading"><div><p class="eyebrow">Explorer</p><h2>Sources</h2></div></div><div class="table-wrap"><table class="knowledge-table"><thead><tr><th>Source</th><th>Readiness</th><th>Knowledge</th><th>Units</th><th>Corrections</th></tr></thead><tbody id="knowledge-source-rows"><tr><td colspan="5" class="empty">No knowledge artifacts yet.</td></tr></tbody></table></div></section>
+            <section class="panel knowledge-detail-panel"><div id="knowledge-detail" class="empty-detail"><p class="eyebrow">Explorer</p><h2>Select a source</h2><p class="muted">Choose a processed source to inspect its timeline, chunks and knowledge units.</p></div></section>
+          </div>
+        </section>
+
+        <section class="view" id="view-corrections">
+          <div class="view-intro"><div><p class="eyebrow">Correction layer</p><h2>Review and annotate knowledge</h2></div><p class="muted">Corrections are appended separately and never overwrite generated artifacts.</p></div>
+          <div class="correction-layout">
+            <section class="panel correction-form-panel"><div class="panel-heading"><div><p class="eyebrow">New correction</p><h2>Record an operator correction</h2></div></div><form id="correction-form"><label>Source<select id="correction-source" name="source_id"><option value="">Select source</option></select></label><label>Target type<select name="target_type"><option value="knowledge_unit">Knowledge unit</option><option value="chunk">Chunk</option><option value="timeline_segment">Timeline segment</option></select></label><label>Target ID<input name="target_id" required placeholder="chunk_00001_u000"></label><label>Field<select name="field"><option value="concepts">Concepts</option><option value="setup_stages">Setup stages</option><option value="text">Text</option><option value="transcript">Transcript</option><option value="ocr_text">OCR text</option><option value="start">Start time</option><option value="end">End time</option><option value="classification">Classification</option><option value="note">Note</option></select></label><label>Corrected value<textarea name="corrected_value" required rows="4" placeholder="Value or note"></textarea></label><label>Reason<textarea name="reason" required rows="3" placeholder="Why is this correction needed?"></textarea></label><label>Author<input name="author" value="operator"></label><button type="submit">Save correction</button><p class="form-message" id="correction-message" role="status"></p></form></section>
+            <section class="panel correction-list-panel"><div class="panel-heading"><div><p class="eyebrow">Append-only record</p><h2>Corrections for selected source</h2></div></div><div id="correction-list" class="correction-list"><p class="empty">Select a source to view corrections.</p></div></section>
+          </div>
+        </section>
+
+        <section class="view" id="view-history">
+          <div class="view-intro"><div><p class="eyebrow">Processing History</p><h2>Pipeline runs and current outputs</h2></div><p class="muted">A trace of which sources have generated knowledge artifacts.</p></div>
+          <section class="panel"><div class="panel-heading"><div><p class="eyebrow">Current projections</p><h2>Knowledge output status</h2></div></div><div class="table-wrap"><table><thead><tr><th>Source</th><th>Readiness</th><th>Pipeline</th><th>Chunks</th><th>Units</th><th>Corrections</th></tr></thead><tbody id="history-rows"><tr><td colspan="6" class="empty">No processing history yet.</td></tr></tbody></table></div></section>
+        </section>
+      </main>
     </div>
-    <div class="status-chip" id="module-status">Checking status</div>
-  </header>
-
-  <main>
-    <section class="metrics" aria-label="Source intake status">
-      <div class="metric"><span>Module</span><strong id="metric-module">-</strong></div>
-      <div class="metric"><span>Sources</span><strong id="metric-sources">0</strong></div>
-      <div class="metric"><span>Ready</span><strong id="metric-ready">0</strong></div>
-      <div class="metric"><span>Partial</span><strong id="metric-partial">0</strong></div>
-    </section>
-
-    <section class="workspace">
-      <div class="panel form-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Acquire source</p>
-            <h2>Register a knowledge source</h2>
-          </div>
-        </div>
-        <form id="acquisition-form">
-          <label>Source ID<input name="source_id" required pattern="[A-Za-z0-9_.-]+" placeholder="video_001"></label>
-          <label>Title<input name="title" placeholder="Optional title"></label>
-          <label>Type<select name="kind" id="source-kind"><option value="video">Video</option><option value="document">Document</option><option value="note">Note</option><option value="image">Image</option><option value="url">URL</option></select></label>
-          <fieldset class="mode-fieldset">
-            <legend>Source input</legend>
-            <div class="mode-control">
-              <label class="mode-option"><input type="radio" name="source_mode" value="url" checked> URL</label>
-              <label class="mode-option"><input type="radio" name="source_mode" value="local"> Local file</label>
-            </div>
-            <label id="url-input-group">URL or locator<input name="locator" id="locator" type="url" placeholder="https://..."></label>
-            <label id="file-input-group" hidden>Local file<input name="file" id="local-file" type="file"></label>
-          </fieldset>
-          <fieldset id="operations-fieldset">
-            <legend>Operations</legend>
-            <label class="check"><input type="checkbox" name="download_video" checked> Download video</label>
-            <label class="check"><input type="checkbox" name="fetch_metadata" checked> Fetch metadata</label>
-            <label class="check"><input type="checkbox" name="fetch_subtitles" checked> Fetch subtitles</label>
-          </fieldset>
-          <button type="submit">Run acquisition</button>
-          <p class="form-message" id="form-message" role="status"></p>
-        </form>
-      </div>
-
-      <div class="panel sources-panel">
-        <div class="panel-heading">
-          <div>
-            <p class="eyebrow">Persisted catalog</p>
-            <h2>Sources and readiness</h2>
-          </div>
-          <div class="panel-actions">
-            <button id="process-all" type="button">Process all sources</button>
-            <button class="secondary" id="refresh" type="button">Refresh</button>
-          </div>
-        </div>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Source</th><th>Type</th><th>Readiness</th><th>Artifacts</th><th>Inspected</th></tr></thead>
-            <tbody id="source-rows"><tr><td colspan="5" class="empty">No sources registered yet.</td></tr></tbody>
-          </table>
-        </div>
-      </div>
-    </section>
-  </main>
+  </div>
   <script src="/static/app.js"></script>
 </body>
 </html>

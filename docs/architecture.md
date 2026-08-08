@@ -12,6 +12,8 @@ of a process.
 operator or source list
         |
         v
+frontend -- operator workspace and module navigation
+        |
 source_intake -- registers sources and acquires source artifacts
         |
         v
@@ -60,4 +62,6 @@ The planned modules are documented as boundaries only. They are not considered
 implemented until their contracts, implementation and module-level verification
 are present. `knowledge_processing` is the first implemented interpretation
 boundary: it preserves source provenance, validates advisory output and writes
-knowledge projections without changing source data.
+knowledge projections without changing source data. The frontend exposes that
+output as a read model. Operator corrections are written to a separate
+append-only correction layer and never mutate the generated artifact in place.

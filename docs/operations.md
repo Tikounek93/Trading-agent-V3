@@ -1,6 +1,7 @@
 # Operations
 
-These procedures belong to the current source-intake slice. They are meant to
+These procedures belong to the current source-intake and knowledge-processing
+slice. They are meant to
 be repeatable and do not create migration copies or temporary project data.
 
 ## Start the operator application
@@ -13,6 +14,10 @@ PYTHONPATH=. /path/to/python -m modules.frontend.source_intake_app --port 8765
 
 Open `http://127.0.0.1:8765` in a browser. Use another free port if the
 requested port is already occupied.
+
+The application shell currently contains Overview, Source Intake, Knowledge
+Processing, Corrections and Processing History. Future strategy and trading
+areas are shown as planned navigation destinations until their modules exist.
 
 ## Register source links
 

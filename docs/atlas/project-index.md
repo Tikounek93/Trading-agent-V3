@@ -43,7 +43,7 @@ Key source files:
 - Source files: 0
 - Test files: 0
 - Docs: 0
-- Config files: 15
+- Config files: 20
 
 Open questions:
 - No tests detected for this module.
@@ -77,7 +77,7 @@ Open questions:
 - Confidence: `low`
 - Source files: 0
 - Test files: 0
-- Docs: 22
+- Docs: 27
 - Config files: 0
 
 ### frontend
@@ -97,7 +97,7 @@ Key source files:
 ### knowledge_processing
 
 - Confidence: `low`
-- Source files: 20
+- Source files: 21
 - Test files: 0
 - Docs: 0
 - Config files: 0
@@ -109,11 +109,11 @@ Key source files:
 - `modules/knowledge_processing/module_metadata.py`
 - `modules/knowledge_processing/storage/__init__.py`
 - `modules/knowledge_processing/storage/knowledge_artifact_store.py`
+- `modules/knowledge_processing/storage/knowledge_correction_store.py`
 - `modules/knowledge_processing/tools/__init__.py`
 - `modules/knowledge_processing/tools/attach_multimodal_evidence.py`
 - `modules/knowledge_processing/tools/build_chunks.py`
-- `modules/knowledge_processing/tools/build_timeline.py`
-- ...and 10 more
+- ...and 11 more
 
 Open questions:
 - No tests detected for this module.

@@ -3,7 +3,10 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from modules.data_platform.catalog import SourceCatalog
-from modules.knowledge_processing.storage import KnowledgeArtifactStore
+from modules.knowledge_processing.storage import (
+    KnowledgeArtifactStore,
+    KnowledgeCorrectionStore,
+)
 from modules.knowledge_processing.tools.validate_knowledge_artifact import (
     validate_knowledge_artifact,
 )
@@ -165,3 +168,34 @@ def test_direct_workflow_preserves_frame_and_ocr_evidence(tmp_path: Path) -> Non
     assert segment["frame_paths"] == ["frames/0005.jpg"]
     assert segment["ocr_texts"][0]["text"] == "fair value gap"
     assert segment["events"][0]["type"] == "fair_value_gap"
+
+
+def test_corrections_are_append_only_and_separate_from_generated_artifact(
+    tmp_path: Path,
+) -> None:
+    store = KnowledgeCorrectionStore(tmp_path / "knowledge")
+
+    first = store.create(
+        "video-1",
+        target_type="knowledge_unit",
+        target_id="chunk_00001_u000",
+        field="concepts",
+        corrected_value=["fair_value_gap", "liquidity"],
+        reason="Operator confirmed the concept in the referenced frame.",
+    )
+    second = store.create(
+        "video-1",
+        target_type="knowledge_unit",
+        target_id="chunk_00001_u000",
+        field="note",
+        corrected_value="Review again after OCR correction.",
+        reason="Keep a follow-up note without changing generated data.",
+    )
+
+    records = store.list("video-1")
+    assert [record["correction_id"] for record in records] == [
+        first["correction_id"],
+        second["correction_id"],
+    ]
+    assert all(record["append_only"] is True for record in records)
+    assert (tmp_path / "knowledge/video-1/corrections.jsonl").is_file()

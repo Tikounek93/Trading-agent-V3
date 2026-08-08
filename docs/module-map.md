@@ -8,7 +8,7 @@ declared scope, contracts, implementation and reusable tests are complete.
 | `system_core` | `0.1.0` | candidate | Lifecycle, modes, readiness, dependencies and run manifests. |
 | `source_intake` | `1.1.0` | stable | Register sources, acquire video/metadata/subtitles, inspect artifacts and calculate readiness. |
 | `data_platform` | `0.2.0` | candidate | Durable artifact storage, promotion and SQLite source catalog. |
-| `frontend` | `0.2.0` | candidate | Operator UI for source registration, processing and status inspection. |
+| `frontend` | `0.3.0` | candidate | Operator workspace with module navigation, source intake, knowledge explorer and correction review. |
 | `knowledge_processing` | `1.0.0` | stable | Prepare, validate and persist structured advisory knowledge from source artifacts. |
 | `strategy_blueprint` | planned | planned | Derive a controlled description of required strategy agents, tools and flows. |
 | `strategy_engine` | planned | planned | Build and evaluate setup candidates from approved strategy inputs. |

@@ -12,6 +12,7 @@ from modules.frontend.source_intake_app import (
 from modules.source_intake.tests.fixtures import fake_factory
 from modules.data_platform.workflows import register_source_links
 from modules.frontend.source_intake_app import _parse_multipart_form
+from modules.knowledge_processing.storage import KnowledgeArtifactStore
 
 
 def test_source_intake_app_exposes_status_and_acquisition_api(tmp_path) -> None:
@@ -117,3 +118,43 @@ def test_multipart_local_file_form_parser_keeps_fields_and_bytes() -> None:
 
     assert fields == {"source_id": "doc_001", "kind": "document"}
     assert files["file"] == ("lesson.pdf", b"PDF bytes")
+
+
+def test_frontend_exposes_knowledge_status_and_append_only_correction(tmp_path) -> None:
+    application = SourceIntakeApplication(
+        AppConfig(
+            intake_root=tmp_path / "intake",
+            durable_root=tmp_path / "durable",
+            catalog_path=tmp_path / "catalog.sqlite3",
+            knowledge_root=tmp_path / "knowledge",
+        )
+    )
+    KnowledgeArtifactStore(tmp_path / "knowledge").save(
+        "video_001",
+        {
+            "source_id": "video_001",
+            "pipeline_version": "1.0.0",
+            "append_only": True,
+            "raw_data_modified": False,
+            "timeline": {"title": "Example", "segments": []},
+            "chunks": [],
+            "knowledge_units": [],
+            "units_count": 0,
+        },
+    )
+
+    status = application.knowledge_status()
+    assert status["module_version"] == "1.0.0"
+    assert status["summary"]["processed_sources"] == 0
+
+    correction_store = application.correction_store
+    correction = correction_store.create(
+        "video_001",
+        target_type="knowledge_unit",
+        target_id="unit_001",
+        field="note",
+        corrected_value="Review",
+        reason="Operator review note",
+    )
+    assert correction["append_only"] is True
+    assert application.get_knowledge("video_001")["corrections"][0]["field"] == "note"

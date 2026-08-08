@@ -84,3 +84,17 @@ class KnowledgeArtifactStore:
         if not target.is_file():
             raise FileNotFoundError(target)
         return json.loads(target.read_text(encoding="utf-8"))
+
+    def exists(self, source_id: str) -> bool:
+        return self._target(source_id).is_file()
+
+    def list_source_ids(self) -> tuple[str, ...]:
+        if not self.root.is_dir():
+            return ()
+        return tuple(
+            sorted(
+                path.name
+                for path in self.root.iterdir()
+                if path.is_dir() and (path / "knowledge.json").is_file()
+            )
+        )
