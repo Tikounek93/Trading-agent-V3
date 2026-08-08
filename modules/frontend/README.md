@@ -11,8 +11,9 @@ visible as planned destinations but are not active.
 - `Source Intake` registers sources, acquires artifacts and inspects readiness.
 - `Knowledge Processing` starts processing, lists generated artifacts and
   explores timelines, chunks and knowledge units.
-- `Corrections` records operator corrections in an append-only layer without
-  modifying generated knowledge or raw source artifacts.
+- `Knowledge Processing` also opens operator corrections for the selected
+  source in an append-only layer without modifying generated knowledge or raw
+  source artifacts.
 - `Processing History` shows current pipeline versions, counts and correction
   totals per processed source.
 

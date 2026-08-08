@@ -18,7 +18,6 @@ const viewTitles = {
   overview: ["Workspace", "Overview"],
   "source-intake": ["Source Intake", "Acquire and inspect sources"],
   knowledge: ["Knowledge Processing", "Prepared knowledge artifacts"],
-  corrections: ["Correction layer", "Review and annotate knowledge"],
   history: ["Processing History", "Pipeline runs and current outputs"]
 };
 
@@ -74,7 +73,6 @@ function activateView(view) {
   });
   document.querySelector("#view-kicker").textContent = viewTitles[view][0];
   document.querySelector("#view-title").textContent = viewTitles[view][1];
-  if (view === "corrections") refreshCorrectionList();
 }
 
 function renderArtifacts(source) {
@@ -207,7 +205,7 @@ function renderKnowledgeDetail(payload) {
   detail.innerHTML = `<div class="detail-heading"><div><p class="eyebrow">${escapeHtml(payload.source_id)}</p><h2>${escapeHtml(timeline.title || payload.source_id)}</h2><p class="muted">Pipeline ${escapeHtml(artifact.pipeline_version || "-")} · ${artifact.chunks?.length || 0} chunks · ${artifact.knowledge_units?.length || 0} units</p></div><button class="secondary" type="button" id="detail-correct">Add correction</button></div>
     <div class="detail-tabs"><button class="detail-tab ${selectedKnowledgeTab === "units" ? "active" : ""}" data-detail-tab="units">Knowledge Units</button><button class="detail-tab ${selectedKnowledgeTab === "chunks" ? "active" : ""}" data-detail-tab="chunks">Chunks</button><button class="detail-tab ${selectedKnowledgeTab === "timeline" ? "active" : ""}" data-detail-tab="timeline">Timeline</button><button class="detail-tab ${selectedKnowledgeTab === "corrections" ? "active" : ""}" data-detail-tab="corrections">Corrections (${corrections.length})</button></div><div id="detail-content"></div>`;
   detail.querySelectorAll("[data-detail-tab]").forEach((button) => button.addEventListener("click", () => { selectedKnowledgeTab = button.dataset.detailTab; renderKnowledgeDetail(payload); }));
-  detail.querySelector("#detail-correct").addEventListener("click", () => { document.querySelector("#correction-source").value = payload.source_id; activateView("corrections"); });
+  detail.querySelector("#detail-correct").addEventListener("click", () => showCorrectionEditor(payload.source_id));
   const content = detail.querySelector("#detail-content");
   if (selectedKnowledgeTab === "units") content.innerHTML = renderUnits(artifact.knowledge_units || []);
   if (selectedKnowledgeTab === "chunks") content.innerHTML = renderChunks(artifact.chunks || []);
@@ -215,10 +213,19 @@ function renderKnowledgeDetail(payload) {
   if (selectedKnowledgeTab === "corrections") content.innerHTML = renderCorrections(corrections);
   if (preserveScroll) content.querySelector(".detail-list")?.scrollTo(0, previousScrollTop);
   content.querySelectorAll("[data-correction-target]").forEach((button) => button.addEventListener("click", () => {
-    document.querySelector("#correction-source").value = payload.source_id;
-    document.querySelector("#correction-form [name='target_id']").value = button.dataset.correctionTarget;
-    activateView("corrections");
+    showCorrectionEditor(payload.source_id, button.dataset.correctionTarget);
   }));
+}
+
+function showCorrectionEditor(sourceId, targetId = "") {
+  const panel = document.querySelector("#knowledge-correction-panel");
+  const source = document.querySelector("#correction-source");
+  const target = document.querySelector("#correction-form [name='target_id']");
+  panel.hidden = false;
+  source.value = sourceId;
+  target.value = targetId;
+  refreshCorrectionList();
+  panel.scrollIntoView({ behavior: "smooth", block: "nearest" });
 }
 
 function renderUnits(units) {
@@ -293,6 +300,9 @@ syncInputMode("url");
 document.querySelectorAll(".nav-item[data-view]").forEach((item) => item.addEventListener("click", () => activateView(item.dataset.view)));
 document.querySelectorAll("[data-go-view]").forEach((item) => item.addEventListener("click", () => activateView(item.dataset.goView)));
 document.querySelector("#correction-source").addEventListener("change", refreshCorrectionList);
+document.querySelector("#close-correction-editor").addEventListener("click", () => {
+  document.querySelector("#knowledge-correction-panel").hidden = true;
+});
 document.querySelector("#refresh").addEventListener("click", () => refreshStatus().catch((error) => setMessage(message, error.message, "error")));
 
 form.addEventListener("submit", async (event) => {
