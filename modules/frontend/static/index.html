@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Trading Agent | Source intake</title>
+  <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">Trading Agent v3</p>
+      <h1>Source intake</h1>
+    </div>
+    <div class="status-chip" id="module-status">Checking status</div>
+  </header>
+
+  <main>
+    <section class="metrics" aria-label="Source intake status">
+      <div class="metric"><span>Module</span><strong id="metric-module">-</strong></div>
+      <div class="metric"><span>Sources</span><strong id="metric-sources">0</strong></div>
+      <div class="metric"><span>Ready</span><strong id="metric-ready">0</strong></div>
+      <div class="metric"><span>Partial</span><strong id="metric-partial">0</strong></div>
+    </section>
+
+    <section class="workspace">
+      <div class="panel form-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Acquire source</p>
+            <h2>Register a knowledge source</h2>
+          </div>
+        </div>
+        <form id="acquisition-form">
+          <label>Source ID<input name="source_id" required pattern="[A-Za-z0-9_.-]+" placeholder="video_001"></label>
+          <label>Title<input name="title" placeholder="Optional title"></label>
+          <label>Type<select name="kind" id="source-kind"><option value="video">Video</option><option value="document">Document</option><option value="note">Note</option><option value="image">Image</option><option value="url">URL</option></select></label>
+          <fieldset class="mode-fieldset">
+            <legend>Source input</legend>
+            <div class="mode-control">
+              <label class="mode-option"><input type="radio" name="source_mode" value="url" checked> URL</label>
+              <label class="mode-option"><input type="radio" name="source_mode" value="local"> Local file</label>
+            </div>
+            <label id="url-input-group">URL or locator<input name="locator" id="locator" type="url" placeholder="https://..."></label>
+            <label id="file-input-group" hidden>Local file<input name="file" id="local-file" type="file"></label>
+          </fieldset>
+          <fieldset id="operations-fieldset">
+            <legend>Operations</legend>
+            <label class="check"><input type="checkbox" name="download_video" checked> Download video</label>
+            <label class="check"><input type="checkbox" name="fetch_metadata" checked> Fetch metadata</label>
+            <label class="check"><input type="checkbox" name="fetch_subtitles" checked> Fetch subtitles</label>
+          </fieldset>
+          <button type="submit">Run acquisition</button>
+          <p class="form-message" id="form-message" role="status"></p>
+        </form>
+      </div>
+
+      <div class="panel sources-panel">
+        <div class="panel-heading">
+          <div>
+            <p class="eyebrow">Persisted catalog</p>
+            <h2>Sources and readiness</h2>
+          </div>
+          <div class="panel-actions">
+            <button id="process-all" type="button">Process all sources</button>
+            <button class="secondary" id="refresh" type="button">Refresh</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Source</th><th>Type</th><th>Readiness</th><th>Artifacts</th><th>Inspected</th></tr></thead>
+            <tbody id="source-rows"><tr><td colspan="5" class="empty">No sources registered yet.</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>
