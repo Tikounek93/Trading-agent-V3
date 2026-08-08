@@ -140,6 +140,14 @@ function renderKnowledgeStatus(knowledge) {
         <td>${source.correction_count || 0}</td>
       </tr>`).join("");
     rows.querySelectorAll("[data-open-knowledge]").forEach((button) => button.addEventListener("click", () => loadKnowledge(button.dataset.openKnowledge)));
+    rows.querySelectorAll(".knowledge-source-row").forEach((row) => row.addEventListener("click", (event) => {
+      if (event.target.closest("[data-open-knowledge]")) return;
+      loadKnowledge(row.dataset.sourceId);
+    }));
+    if (!selectedKnowledgeSource) {
+      const firstProcessed = sources.find((source) => source.knowledge_available);
+      if (firstProcessed) loadKnowledge(firstProcessed.source_id);
+    }
   }
   renderHistory(sources);
   populateCorrectionSources(sources);
