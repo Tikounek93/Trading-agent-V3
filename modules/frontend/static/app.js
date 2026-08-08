@@ -196,8 +196,10 @@ function populateCorrectionSources(sources) {
 function renderKnowledgeDetail(payload) {
   const artifact = payload.artifact || {};
   const timeline = artifact.timeline || {};
+  const chunks = artifact.chunks || [];
   const corrections = payload.corrections || [];
   const refinement = artifact.refinement || {};
+  const ocrChunks = chunks.filter((chunk) => chunk.combined_ocr || chunk.cleaned_ocr);
   const refinementNote = refinement.input_units != null
     ? ` · refinement ${refinement.retained_units}/${refinement.input_units}`
     : "";
@@ -206,13 +208,14 @@ function renderKnowledgeDetail(payload) {
   const previousTab = detail.querySelector("[data-detail-tab].active")?.dataset.detailTab;
   const previousScrollTop = previousContent?.scrollTop || 0;
   const preserveScroll = previousTab === selectedKnowledgeTab;
-  detail.innerHTML = `<div class="detail-heading"><div><p class="eyebrow">${escapeHtml(payload.source_id)}</p><h2>${escapeHtml(timeline.title || payload.source_id)}</h2><p class="muted">Pipeline ${escapeHtml(artifact.pipeline_version || "-")} · ${artifact.chunks?.length || 0} chunks · ${artifact.knowledge_units?.length || 0} units${escapeHtml(refinementNote)}</p></div><button class="secondary" type="button" id="detail-correct">Add correction</button></div>
-    <div class="detail-tabs"><button class="detail-tab ${selectedKnowledgeTab === "units" ? "active" : ""}" data-detail-tab="units">Knowledge Units</button><button class="detail-tab ${selectedKnowledgeTab === "chunks" ? "active" : ""}" data-detail-tab="chunks">Chunks</button><button class="detail-tab ${selectedKnowledgeTab === "timeline" ? "active" : ""}" data-detail-tab="timeline">Timeline</button><button class="detail-tab ${selectedKnowledgeTab === "corrections" ? "active" : ""}" data-detail-tab="corrections">Corrections (${corrections.length})</button></div><div id="detail-content"></div>`;
+  detail.innerHTML = `<div class="detail-heading"><div><p class="eyebrow">${escapeHtml(payload.source_id)}</p><h2>${escapeHtml(timeline.title || payload.source_id)}</h2><p class="muted">Pipeline ${escapeHtml(artifact.pipeline_version || "-")} · ${chunks.length} chunks · ${artifact.knowledge_units?.length || 0} units · OCR ${ocrChunks.length}/${chunks.length}${escapeHtml(refinementNote)}</p></div><button class="secondary" type="button" id="detail-correct">Add correction</button></div>
+    <div class="detail-tabs"><button class="detail-tab ${selectedKnowledgeTab === "units" ? "active" : ""}" data-detail-tab="units">Knowledge Units</button><button class="detail-tab ${selectedKnowledgeTab === "chunks" ? "active" : ""}" data-detail-tab="chunks">Chunks</button><button class="detail-tab ${selectedKnowledgeTab === "ocr" ? "active" : ""}" data-detail-tab="ocr">OCR (${ocrChunks.length})</button><button class="detail-tab ${selectedKnowledgeTab === "timeline" ? "active" : ""}" data-detail-tab="timeline">Timeline</button><button class="detail-tab ${selectedKnowledgeTab === "corrections" ? "active" : ""}" data-detail-tab="corrections">Corrections (${corrections.length})</button></div><div id="detail-content"></div>`;
   detail.querySelectorAll("[data-detail-tab]").forEach((button) => button.addEventListener("click", () => { selectedKnowledgeTab = button.dataset.detailTab; renderKnowledgeDetail(payload); }));
   detail.querySelector("#detail-correct").addEventListener("click", () => showCorrectionEditor(payload.source_id));
   const content = detail.querySelector("#detail-content");
   if (selectedKnowledgeTab === "units") content.innerHTML = renderUnits(artifact.knowledge_units || []);
-  if (selectedKnowledgeTab === "chunks") content.innerHTML = renderChunks(artifact.chunks || []);
+  if (selectedKnowledgeTab === "chunks") content.innerHTML = renderChunks(chunks);
+  if (selectedKnowledgeTab === "ocr") content.innerHTML = renderOCR(chunks);
   if (selectedKnowledgeTab === "timeline") content.innerHTML = renderTimeline(timeline.segments || []);
   if (selectedKnowledgeTab === "corrections") content.innerHTML = renderCorrections(corrections);
   if (preserveScroll) content.querySelector(".detail-list")?.scrollTo(0, previousScrollTop);
@@ -242,6 +245,12 @@ function renderChunks(chunks) {
   return `<div class="detail-list">${chunks.map((chunk) => `<article class="knowledge-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><p>${escapeHtml(cleanTranscriptText(chunk.semantic?.summary || chunk.combined_transcript || ""))}</p><small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · ${escapeHtml((chunk.semantic?.topics || []).join(", "))}</small></article>`).join("")}</div>`;
 }
 
+function renderOCR(chunks) {
+  const ocrChunks = chunks.filter((chunk) => chunk.combined_ocr || chunk.cleaned_ocr);
+  if (!ocrChunks.length) return '<div class="ocr-empty"><strong>No OCR data is available for this source.</strong><p>OCR is created from video frames. This source currently contains subtitles and video, but no OCR records or frame index.</p></div>';
+  return `<div class="detail-list">${ocrChunks.map((chunk) => `<article class="knowledge-card ocr-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><div class="ocr-columns"><div><span class="ocr-label">OCR from frame</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.combined_ocr))}</p></div><div><span class="ocr-label">After cleanup</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.cleaned_ocr))}</p></div></div><small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · quality ${escapeHtml(chunk.ocr_quality_score ?? "-")} · ${chunk.frame_paths?.length || 0} frames</small></article>`).join("")}</div>`;
+}
+
 function renderTimeline(segments) {
   if (!segments.length) return '<p class="empty">No timeline segments available.</p>';
   return `<div class="detail-list timeline-list">${segments.map((segment, index) => `<article class="timeline-row"><span class="timecode">${formatTime(segment.start)}<br>${formatTime(segment.end)}</span><div><p>${escapeHtml(cleanTranscriptText(segment.transcript || ""))}</p><small>${segment.frame_paths?.length || 0} frames · ${segment.ocr_texts?.length || 0} OCR records · ${segment.events?.length || 0} events</small></div><button class="text-button" type="button" data-correction-target="segment_${index}">Correct</button></article>`).join("")}</div>`;
@@ -263,6 +272,16 @@ function cleanTranscriptText(value) {
     .replace(/<\/?c(?:\.[^>]*)?>/gi, "")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function cleanOCRText(value) {
+  return String(value ?? "")
+    .replace(/<(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}>/g, "")
+    .replace(/<\/?c(?:\.[^>]*)?>/gi, "")
+    .split(/\r?\n/)
+    .map((line) => line.replace(/\s+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n");
 }
 
 async function loadKnowledge(sourceId) {
