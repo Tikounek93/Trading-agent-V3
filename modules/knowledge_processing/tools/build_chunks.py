@@ -25,6 +25,22 @@ def _dedupe_text(parts: list[str]) -> str:
     return " ".join(words)
 
 
+def _dedupe_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    unique: list[dict[str, Any]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for event in events:
+        key = (
+            str(event.get("type") or event.get("event_type") or "unknown"),
+            str(event.get("keyword") or ""),
+            str(event.get("source") or ""),
+        )
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(event)
+    return unique
+
+
 def build_semantic_chunks(
     timeline: dict[str, Any],
     *,
@@ -51,7 +67,9 @@ def build_semantic_chunks(
                 if text:
                     ocr.append(text)
         frames = [path for item in current for path in item.get("frame_paths", [])]
-        events = [event for item in current for event in item.get("events", [])]
+        events = _dedupe_events(
+            [event for item in current for event in item.get("events", [])]
+        )
         start = float(current[0].get("start", 0))
         end = float(current[-1].get("end", start))
         counts = Counter(_event_key(event) for event in events)

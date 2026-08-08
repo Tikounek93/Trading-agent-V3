@@ -12,8 +12,10 @@ from ..tools.build_timeline import build_timeline
 from ..tools.enrich_chunks import enrich_chunk
 from ..tools.extract_events import extract_events
 from ..tools.extract_knowledge_units import (
+    build_knowledge_candidates,
     build_knowledge_units_summary,
     extract_knowledge_units,
+    refine_knowledge_units,
 )
 from ..tools.parse_vtt import parse_vtt_subtitles
 from ..tools.score_knowledge_units import score_knowledge_unit
@@ -64,16 +66,20 @@ def process_source(
         for segment in timeline.get("segments", [])
     ]
     chunks = [enrich_chunk(chunk) for chunk in build_semantic_chunks(timeline)]
+    knowledge_candidates = build_knowledge_candidates(chunks)
     units = extract_knowledge_units(chunks)
-    scored_units = [score_knowledge_unit(unit) for unit in units]
+    refined_units, refinement = refine_knowledge_units(units)
+    scored_units = [score_knowledge_unit(unit) for unit in refined_units]
     summary = build_knowledge_units_summary(source_id, scored_units)
     return {
         "source_id": source_id,
-        "pipeline_version": "1.0.0",
+        "pipeline_version": "1.1.0",
         "append_only": True,
         "raw_data_modified": False,
         "timeline": timeline,
         "chunks": chunks,
+        "knowledge_candidates": knowledge_candidates,
+        "refinement": refinement,
         "units_count": summary["units_count"],
         "unit_type_counts": summary["unit_type_counts"],
         "concept_counts": summary["concept_counts"],

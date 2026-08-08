@@ -85,6 +85,98 @@ def extract_knowledge_units(chunks: list[dict[str, Any]]) -> list[dict[str, Any]
     return units
 
 
+def build_knowledge_candidates(chunks: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Project enriched chunks into explicit, traceable knowledge candidates."""
+
+    candidates: list[dict[str, Any]] = []
+    for chunk in chunks:
+        semantic = chunk.get("semantic", {})
+        if not isinstance(semantic, dict):
+            semantic = {}
+        if not semantic.get("topics") and not chunk.get("events"):
+            continue
+        candidates.append(
+            {
+                "candidate_id": f"{chunk.get('chunk_id', 'chunk')}_candidate",
+                "source_chunk_id": chunk.get("chunk_id"),
+                "start": chunk.get("start"),
+                "end": chunk.get("end"),
+                "text": semantic.get("search_text") or chunk.get("combined_transcript", ""),
+                "concepts": list(semantic.get("topics", [])),
+                "setup_stages": list(semantic.get("setup_stages", [])),
+                "rule_candidates": list(semantic.get("rule_candidates", [])),
+                "events": list(chunk.get("events", [])),
+            }
+        )
+    return candidates
+
+
+def _canonical_unit_text(value: str) -> str:
+    return re.sub(r"[^a-z0-9 ]+", "", value.casefold()).strip()
+
+
+def _unit_is_redundant(candidate: dict[str, Any], existing: dict[str, Any]) -> bool:
+    if candidate.get("source_chunk_id") != existing.get("source_chunk_id"):
+        return False
+    candidate_words = _canonical_unit_text(str(candidate.get("text") or "")).split()
+    existing_words = _canonical_unit_text(str(existing.get("text") or "")).split()
+    if not candidate_words or not existing_words:
+        return True
+    if candidate_words == existing_words:
+        return True
+    shorter, longer = sorted((candidate_words, existing_words), key=len)
+    if len(shorter) >= 8:
+        for start in range(len(longer) - len(shorter) + 1):
+            if longer[start : start + len(shorter)] == shorter:
+                return True
+    overlap = len(set(candidate_words) & set(existing_words)) / max(
+        len(set(shorter)), 1
+    )
+    return overlap >= 0.92
+
+
+def refine_knowledge_units(
+    units: list[dict[str, Any]],
+) -> tuple[list[dict[str, Any]], dict[str, int | str]]:
+    """Remove repeated/contained units without merging separate chunks."""
+
+    refined: list[dict[str, Any]] = []
+    exact_duplicates = 0
+    contained_duplicates = 0
+    seen: set[tuple[str, str]] = set()
+    for unit in units:
+        key = (
+            str(unit.get("source_chunk_id") or ""),
+            _canonical_unit_text(str(unit.get("text") or "")),
+        )
+        if key in seen:
+            exact_duplicates += 1
+            continue
+        redundant_index = next(
+            (
+                index
+                for index, existing in enumerate(refined)
+                if _unit_is_redundant(unit, existing)
+            ),
+            None,
+        )
+        if redundant_index is not None:
+            existing = refined[redundant_index]
+            if len(str(unit.get("text") or "")) > len(str(existing.get("text") or "")):
+                refined[redundant_index] = unit
+            contained_duplicates += 1
+            continue
+        seen.add(key)
+        refined.append(unit)
+    return refined, {
+        "version": "1.0.0",
+        "input_units": len(units),
+        "retained_units": len(refined),
+        "removed_exact_duplicates": exact_duplicates,
+        "removed_contained_or_overlapping_units": contained_duplicates,
+    }
+
+
 def build_knowledge_units_summary(
     source_id: str,
     units: list[dict[str, Any]],

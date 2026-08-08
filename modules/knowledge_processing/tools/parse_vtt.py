@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import html
+import re
 from pathlib import Path
+
+
+_INLINE_TIMESTAMP = re.compile(r"<(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}>")
+_INLINE_CUE_TAG = re.compile(r"</?c(?:\.[^>]*)?>", re.IGNORECASE)
 
 
 def timestamp_to_seconds(value: str) -> float:
@@ -21,6 +27,15 @@ def _parse_timestamp_line(line: str) -> tuple[float, float] | None:
         return None
     start, end = (part.strip().split(" ", 1)[0] for part in line.split("-->", 1))
     return timestamp_to_seconds(start), timestamp_to_seconds(end)
+
+
+def clean_vtt_text(value: str) -> str:
+    """Remove WebVTT inline timing/cue markup while preserving spoken text."""
+
+    cleaned = _INLINE_TIMESTAMP.sub("", value)
+    cleaned = _INLINE_CUE_TAG.sub("", cleaned)
+    cleaned = html.unescape(cleaned)
+    return " ".join(cleaned.split()).strip()
 
 
 def parse_vtt_subtitles(path: str | Path) -> list[dict[str, object]]:
@@ -49,8 +64,15 @@ def parse_vtt_subtitles(path: str | Path) -> list[dict[str, object]]:
         while index < len(lines) and lines[index].strip():
             text_lines.append(lines[index].strip())
             index += 1
-        text = " ".join(text_lines).strip()
+        text = clean_vtt_text(" ".join(text_lines))
         if text:
+            if (
+                segments
+                and end - start < 0.05
+                and text == segments[-1]["text"]
+            ):
+                index += 1
+                continue
             segments.append({"start": start, "end": end, "text": text})
         index += 1
     return segments

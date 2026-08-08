@@ -9,8 +9,8 @@ from modules.system_core.contracts import (
 
 
 MODULE_ID = "knowledge_processing"
-MODULE_VERSION = "1.0.0"
-MODULE_STATUS = "stable"
+MODULE_VERSION = "1.1.0"
+MODULE_STATUS = "candidate"
 
 
 def build_module_manifest() -> ModuleManifest:

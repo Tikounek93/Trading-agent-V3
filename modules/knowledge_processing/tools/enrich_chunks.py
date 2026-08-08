@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 
@@ -29,11 +30,37 @@ def _matches(text: str, keywords: tuple[str, ...]) -> bool:
     return any(keyword in text for keyword in keywords)
 
 
+def clean_ocr_text(raw_text: str) -> tuple[str, float]:
+    """Remove low-value OCR lines and return cleaned text plus quality score."""
+
+    cleaned_lines: list[str] = []
+    seen: set[str] = set()
+    for line in str(raw_text or "").splitlines():
+        normalized = " ".join(line.split()).strip()
+        if len(normalized) < 6:
+            continue
+        alpha_ratio = sum(character.isalpha() for character in normalized) / max(
+            len(normalized), 1
+        )
+        if alpha_ratio < 0.45 or re.fullmatch(r"[\W_]+", normalized):
+            continue
+        key = normalized.casefold()
+        if key in seen:
+            continue
+        seen.add(key)
+        cleaned_lines.append(normalized)
+    cleaned = "\n".join(cleaned_lines)
+    useful_lines = sum(len(line.split()) >= 3 for line in cleaned_lines)
+    score = round(useful_lines / max(len(cleaned_lines), 1), 3)
+    return cleaned, score
+
+
 def enrich_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
+    cleaned_ocr, ocr_quality_score = clean_ocr_text(chunk.get("combined_ocr", ""))
     text = "\n".join(
         (
             str(chunk.get("combined_transcript") or ""),
-            str(chunk.get("combined_ocr") or ""),
+            cleaned_ocr,
         )
     ).strip()
     normalized = text.lower()
@@ -57,6 +84,8 @@ def enrich_chunk(chunk: dict[str, Any]) -> dict[str, Any]:
     if "liquidity" in normalized:
         rules.append("Evaluate liquidity behavior before reversal assumptions.")
     enriched = dict(chunk)
+    enriched["cleaned_ocr"] = cleaned_ocr
+    enriched["ocr_quality_score"] = ocr_quality_score
     enriched["semantic"] = {
         "topic": topics[0] if topics else "general",
         "topics": topics,
