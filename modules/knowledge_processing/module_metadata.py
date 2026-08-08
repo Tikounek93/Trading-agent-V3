@@ -9,7 +9,7 @@ from modules.system_core.contracts import (
 
 
 MODULE_ID = "knowledge_processing"
-MODULE_VERSION = "1.1.0"
+MODULE_VERSION = "1.2.0"
 MODULE_STATUS = "candidate"
 
 

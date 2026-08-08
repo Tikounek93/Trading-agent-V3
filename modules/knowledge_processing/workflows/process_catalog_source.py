@@ -9,6 +9,7 @@ from typing import Any
 from modules.data_platform.catalog.source_catalog import SourceCatalog
 
 from ..storage.knowledge_artifact_store import KnowledgeArtifactStore
+from ..tools.extract_video_ocr import OCRRuntimeUnavailable, extract_video_ocr
 from ..tools.validate_knowledge_artifact import validate_knowledge_artifact
 from .process_source import process_source
 
@@ -19,6 +20,16 @@ SUBTITLE_PREFERENCES = (
     "raw/transcript.en.vtt",
     "raw/transcript.en-orig.vtt",
     "raw/transcript.vtt",
+)
+
+FRAME_INDEX_PREFERENCES = (
+    "raw/frame_index.json",
+    "raw/frames/frame_index.json",
+)
+
+OCR_PREFERENCES = (
+    "raw/ocr_index.json",
+    "raw/ocr/ocr_index.json",
 )
 
 
@@ -61,6 +72,9 @@ def _available_path(
     for relative_path in preferred_paths:
         if relative_path in by_path:
             return _artifact_path(artifact_root, source_id, relative_path)
+        local_path = _artifact_path(artifact_root, source_id, relative_path)
+        if local_path.is_file():
+            return local_path
     for item in available:
         normalized = item.relative_path.lower()
         if any(fragment in normalized for fragment in name_fragments):
@@ -111,6 +125,7 @@ def process_catalog_source(
         artifacts,
         artifact_root,
         source_id,
+        preferred_paths=FRAME_INDEX_PREFERENCES,
         name_fragments=("frame_index", "frames.json"),
     )
     frame_index = _records_from_json(
@@ -121,12 +136,35 @@ def process_catalog_source(
         artifacts,
         artifact_root,
         source_id,
+        preferred_paths=OCR_PREFERENCES,
         name_fragments=("ocr",),
     )
     ocr_records = _records_from_json(
         _load_json(ocr_path) if ocr_path else None,
         ("records", "results", "ocr", "items"),
     )
+
+    if not frame_index and not ocr_records:
+        video_path = _available_path(
+            artifacts,
+            artifact_root,
+            source_id,
+            preferred_paths=("raw/video.mp4",),
+            name_fragments=("video",),
+        )
+        if video_path:
+            try:
+                generated = extract_video_ocr(
+                    video_path,
+                    artifact_root / source_id,
+                    source_id,
+                )
+                frame_index = generated["frames"]
+                ocr_records = generated["ocr_records"]
+            except (OCRRuntimeUnavailable, RuntimeError):
+                # Processing remains usable in environments without the optional
+                # OCR runtime; the artifact will explicitly contain no OCR.
+                pass
 
     artifact = process_source(
         source_id,

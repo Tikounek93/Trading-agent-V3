@@ -73,7 +73,7 @@ def process_source(
     summary = build_knowledge_units_summary(source_id, scored_units)
     return {
         "source_id": source_id,
-        "pipeline_version": "1.1.0",
+        "pipeline_version": "1.2.0",
         "append_only": True,
         "raw_data_modified": False,
         "timeline": timeline,
