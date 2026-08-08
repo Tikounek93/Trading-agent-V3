@@ -200,6 +200,10 @@ function renderKnowledgeDetail(payload) {
   const timeline = artifact.timeline || {};
   const corrections = payload.corrections || [];
   const detail = document.querySelector("#knowledge-detail");
+  const previousContent = detail.querySelector("#detail-content .detail-list");
+  const previousTab = detail.querySelector("[data-detail-tab].active")?.dataset.detailTab;
+  const previousScrollTop = previousContent?.scrollTop || 0;
+  const preserveScroll = previousTab === selectedKnowledgeTab;
   detail.innerHTML = `<div class="detail-heading"><div><p class="eyebrow">${escapeHtml(payload.source_id)}</p><h2>${escapeHtml(timeline.title || payload.source_id)}</h2><p class="muted">Pipeline ${escapeHtml(artifact.pipeline_version || "-")} · ${artifact.chunks?.length || 0} chunks · ${artifact.knowledge_units?.length || 0} units</p></div><button class="secondary" type="button" id="detail-correct">Add correction</button></div>
     <div class="detail-tabs"><button class="detail-tab ${selectedKnowledgeTab === "units" ? "active" : ""}" data-detail-tab="units">Knowledge Units</button><button class="detail-tab ${selectedKnowledgeTab === "chunks" ? "active" : ""}" data-detail-tab="chunks">Chunks</button><button class="detail-tab ${selectedKnowledgeTab === "timeline" ? "active" : ""}" data-detail-tab="timeline">Timeline</button><button class="detail-tab ${selectedKnowledgeTab === "corrections" ? "active" : ""}" data-detail-tab="corrections">Corrections (${corrections.length})</button></div><div id="detail-content"></div>`;
   detail.querySelectorAll("[data-detail-tab]").forEach((button) => button.addEventListener("click", () => { selectedKnowledgeTab = button.dataset.detailTab; renderKnowledgeDetail(payload); }));
@@ -209,6 +213,7 @@ function renderKnowledgeDetail(payload) {
   if (selectedKnowledgeTab === "chunks") content.innerHTML = renderChunks(artifact.chunks || []);
   if (selectedKnowledgeTab === "timeline") content.innerHTML = renderTimeline(timeline.segments || []);
   if (selectedKnowledgeTab === "corrections") content.innerHTML = renderCorrections(corrections);
+  if (preserveScroll) content.querySelector(".detail-list")?.scrollTo(0, previousScrollTop);
   content.querySelectorAll("[data-correction-target]").forEach((button) => button.addEventListener("click", () => {
     document.querySelector("#correction-source").value = payload.source_id;
     document.querySelector("#correction-form [name='target_id']").value = button.dataset.correctionTarget;
