@@ -1,29 +1,45 @@
-# knowledge_processing v0.1.0
+# knowledge_processing v1.0.0
 
-knowledge_processing transforms already acquired source artifacts into
+`knowledge_processing` converts already acquired source artifacts into
 structured, traceable and advisory knowledge. It does not download sources,
-build a strategy, approve a strategy or trade.
+create a strategy, approve a strategy or trade.
 
-This first candidate release ports the deterministic core of the useful v2
-extraction behavior:
+## What it does
 
-- VTT subtitle parsing and timeline creation,
-- semantic chunking with transcript and event provenance,
-- topic and setup-stage enrichment,
-- knowledge-unit extraction,
-- advisory relevance scoring.
+- reads subtitle or transcript artifacts selected by `SourceCatalog`;
+- creates a canonical timeline and semantic chunks;
+- attaches optional frame-index and OCR sidecar evidence by timestamp;
+- extracts domain events, concepts, setup stages and traceable knowledge units;
+- assigns an advisory relevance score with explicit reasons;
+- validates timing, provenance, required fields and the module boundary;
+- stores a current JSON projection plus append-only history per source;
+- processes one source or all ready catalog sources repeatedly and idempotently.
 
-OCR, video frame extraction, video decoding, external AI calls and database
-persistence are intentionally separate follow-up boundaries. OCR and frame
-references can already travel through the timeline shape when supplied by a
-future tool.
+The pipeline is deterministic and text-first. AI enrichment, video decoding and
+OCR production remain replaceable upstream or adjacent tools. This module can
+consume their structured outputs without taking ownership of those providers.
 
 ## Input and output
 
-The workflow accepts a local subtitle artifact identified by source_id. It
-returns an append-only knowledge artifact containing the source identity,
-timeline, chunks, knowledge units and advisory scores. Raw source files are
-never modified.
+The direct workflow accepts a local subtitle artifact and optional frame/OCR
+records. The catalog workflow resolves those inputs from `SourceCatalog` and
+the promoted artifact root. A missing subtitle or transcript blocks that
+source without creating an incomplete knowledge artifact.
 
-The output describes evidence and relevance. It never contains execution,
-approval, broker or strategy-activation authority.
+Knowledge output is stored under `data/knowledge/<source_id>/knowledge.json`.
+Every changed projection also receives a timestamped file under that source's
+`history` directory. Raw source files and the source catalog are never
+modified by this module.
+
+The output describes evidence, concepts, stages and relevance. It never
+contains execution, approval, broker or strategy-activation authority.
+
+## Repeatable operation
+
+```text
+PYTHONPATH=. /path/to/python scripts/process_knowledge_sources.py
+```
+
+Use `--knowledge-root /temporary/path` for a disposable verification run.
+The generated knowledge dataset is operational data and is not committed to
+the repository.

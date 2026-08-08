@@ -9,8 +9,8 @@ from modules.system_core.contracts import (
 
 
 MODULE_ID = "knowledge_processing"
-MODULE_VERSION = "0.1.0"
-MODULE_STATUS = "candidate"
+MODULE_VERSION = "1.0.0"
+MODULE_STATUS = "stable"
 
 
 def build_module_manifest() -> ModuleManifest:
@@ -24,11 +24,11 @@ def build_module_manifest() -> ModuleManifest:
         provided_contracts=(
             ContractDeclaration(
                 "knowledge_processing.timeline",
-                SemanticVersion.parse("0.1.0"),
+                SemanticVersion.parse("1.0.0"),
             ),
             ContractDeclaration(
                 "knowledge_processing.knowledge_artifact",
-                SemanticVersion.parse("0.1.0"),
+                SemanticVersion.parse("1.0.0"),
             ),
         ),
     )

@@ -41,12 +41,15 @@ def build_semantic_chunks(
         transcript = _dedupe_text(
             [str(item.get("transcript") or "") for item in current]
         )
-        ocr = [
-            str(value).strip()
-            for item in current
-            for value in item.get("ocr_texts", [])
-            if str(value).strip()
-        ]
+        ocr = []
+        for item in current:
+            for value in item.get("ocr_texts", []):
+                if isinstance(value, dict):
+                    text = str(value.get("text") or value.get("content") or "").strip()
+                else:
+                    text = str(value).strip()
+                if text:
+                    ocr.append(text)
         frames = [path for item in current for path in item.get("frame_paths", [])]
         events = [event for item in current for event in item.get("events", [])]
         start = float(current[0].get("start", 0))

@@ -21,11 +21,10 @@ data_platform -- stores artifacts and catalog metadata
 knowledge_processing -- prepares structured advisory knowledge
 ```
 
-The current v3 slice now contains the first candidate knowledge-processing
-consumer. It deliberately stops before blueprint creation and trading logic.
-It must be possible to replace the web interface, storage implementation or
-provider adapter without changing the source, artifact and knowledge
-contracts.
+The current v3 slice now contains a stable knowledge-processing consumer. It
+deliberately stops before blueprint creation and trading logic. It must be
+possible to replace the web interface, storage implementation or provider
+adapter without changing the source, artifact and knowledge contracts.
 
 ## Boundary rules
 
@@ -59,4 +58,6 @@ source_intake
 
 The planned modules are documented as boundaries only. They are not considered
 implemented until their contracts, implementation and module-level verification
-are present.
+are present. `knowledge_processing` is the first implemented interpretation
+boundary: it preserves source provenance, validates advisory output and writes
+knowledge projections without changing source data.

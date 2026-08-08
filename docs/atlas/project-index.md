@@ -1,7 +1,7 @@
 # Agent Atlas - Project Index
 
 Repository: `/Users/martincerny/trading_agent_v3`
-Detected modules: **8**
+Detected modules: **9**
 
 ## Atlas Maintenance
 
@@ -26,14 +26,15 @@ Detected modules: **8**
 ### application
 
 - Confidence: `high`
-- Source files: 3
-- Test files: 17
+- Source files: 4
+- Test files: 24
 - Docs: 0
 - Config files: 0
 
 Key source files:
 - `modules/__init__.py`
 - `scripts/import_v2_source_links.py`
+- `scripts/process_knowledge_sources.py`
 - `scripts/reconcile_artifact_storage.py`
 
 ### config
@@ -42,7 +43,7 @@ Key source files:
 - Source files: 0
 - Test files: 0
 - Docs: 0
-- Config files: 6
+- Config files: 15
 
 Open questions:
 - No tests detected for this module.
@@ -50,7 +51,7 @@ Open questions:
 ### data_platform
 
 - Confidence: `low`
-- Source files: 15
+- Source files: 14
 - Test files: 0
 - Docs: 0
 - Config files: 0
@@ -66,7 +67,7 @@ Key source files:
 - `modules/data_platform/ports/artifact_store.py`
 - `modules/data_platform/storage/__init__.py`
 - `modules/data_platform/storage/filesystem_artifact_store.py`
-- ...and 5 more
+- ...and 4 more
 
 Open questions:
 - No tests detected for this module.
@@ -76,14 +77,14 @@ Open questions:
 - Confidence: `low`
 - Source files: 0
 - Test files: 0
-- Docs: 15
+- Docs: 22
 - Config files: 0
 
 ### frontend
 
 - Confidence: `high`
-- Source files: 5
-- Test files: 1
+- Source files: 4
+- Test files: 2
 - Docs: 0
 - Config files: 0
 
@@ -92,7 +93,30 @@ Key source files:
 - `modules/frontend/module_metadata.py`
 - `modules/frontend/source_intake_app.py`
 - `modules/frontend/static/app.js`
-- `modules/frontend/tests/__init__.py`
+
+### knowledge_processing
+
+- Confidence: `low`
+- Source files: 20
+- Test files: 0
+- Docs: 0
+- Config files: 0
+
+Key source files:
+- `modules/knowledge_processing/__init__.py`
+- `modules/knowledge_processing/contracts/__init__.py`
+- `modules/knowledge_processing/contracts/knowledge.py`
+- `modules/knowledge_processing/module_metadata.py`
+- `modules/knowledge_processing/storage/__init__.py`
+- `modules/knowledge_processing/storage/knowledge_artifact_store.py`
+- `modules/knowledge_processing/tools/__init__.py`
+- `modules/knowledge_processing/tools/attach_multimodal_evidence.py`
+- `modules/knowledge_processing/tools/build_chunks.py`
+- `modules/knowledge_processing/tools/build_timeline.py`
+- ...and 10 more
+
+Open questions:
+- No tests detected for this module.
 
 ### runtime
 
@@ -108,7 +132,7 @@ Open questions:
 ### source_intake
 
 - Confidence: `low`
-- Source files: 27
+- Source files: 25
 - Test files: 0
 - Docs: 0
 - Config files: 0
@@ -124,7 +148,7 @@ Key source files:
 - `modules/source_intake/contracts/artifacts.py`
 - `modules/source_intake/contracts/intake.py`
 - `modules/source_intake/contracts/source.py`
-- ...and 17 more
+- ...and 15 more
 
 Open questions:
 - No tests detected for this module.
@@ -132,7 +156,7 @@ Open questions:
 ### system_core
 
 - Confidence: `low`
-- Source files: 32
+- Source files: 31
 - Test files: 0
 - Docs: 0
 - Config files: 0
@@ -148,7 +172,7 @@ Key source files:
 - `modules/system_core/contracts/system_event.py`
 - `modules/system_core/contracts/versioning.py`
 - `modules/system_core/module_metadata.py`
-- ...and 22 more
+- ...and 21 more
 
 Open questions:
 - No tests detected for this module.
