@@ -240,7 +240,7 @@ function renderChunks(chunks) {
 
 function renderTimeline(segments) {
   if (!segments.length) return '<p class="empty">No timeline segments available.</p>';
-  return `<div class="detail-list timeline-list">${segments.slice(0, 120).map((segment, index) => `<article class="timeline-row"><span class="timecode">${formatTime(segment.start)}<br>${formatTime(segment.end)}</span><div><p>${escapeHtml(segment.transcript || "")}</p><small>${segment.frame_paths?.length || 0} frames · ${segment.ocr_texts?.length || 0} OCR records · ${segment.events?.length || 0} events</small></div><button class="text-button" type="button" data-correction-target="segment_${index}">Correct</button></article>`).join("")}</div>`;
+  return `<div class="detail-list timeline-list">${segments.map((segment, index) => `<article class="timeline-row"><span class="timecode">${formatTime(segment.start)}<br>${formatTime(segment.end)}</span><div><p>${escapeHtml(segment.transcript || "")}</p><small>${segment.frame_paths?.length || 0} frames · ${segment.ocr_texts?.length || 0} OCR records · ${segment.events?.length || 0} events</small></div><button class="text-button" type="button" data-correction-target="segment_${index}">Correct</button></article>`).join("")}</div>`;
 }
 
 function renderCorrections(corrections) {
