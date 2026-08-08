@@ -12,6 +12,8 @@ They are not only prose documentation.
   and source manifests.
 - `data_platform` provides storage keys, stored-artifact receipts and the
   SQLite source catalog.
+- `knowledge_processing` provides a canonical timeline shape and append-only
+  advisory knowledge artifacts with source provenance and relevance scores.
 - `frontend` consumes the source-intake and data-platform interfaces; it does
   not define provider or trading contracts.
 
@@ -25,6 +27,8 @@ They are not only prose documentation.
   readiness check.
 - IDs and relative paths must remain reproducible and safe.
 - Data provenance must survive every hand-off through source and artifact IDs.
+- Knowledge outputs may describe evidence, concepts, stages and relevance, but
+  must not authorize strategy activation, execution or broker actions.
 
 The first implementation keeps contracts in source code next to their owning
 module. This document explains their role; it is not a duplicate definition

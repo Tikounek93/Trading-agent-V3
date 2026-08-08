@@ -18,12 +18,13 @@ source_intake -- registers sources and acquires source artifacts
 data_platform -- stores artifacts and catalog metadata
         |
         v
-knowledge_processing -- planned next consumer
+knowledge_processing -- prepares structured advisory knowledge
 ```
 
-The current v3 slice deliberately stops before knowledge processing and
-trading logic. It must be possible to replace the web interface, storage
-implementation or provider adapter without changing the source and artifact
+The current v3 slice now contains the first candidate knowledge-processing
+consumer. It deliberately stops before blueprint creation and trading logic.
+It must be possible to replace the web interface, storage implementation or
+provider adapter without changing the source, artifact and knowledge
 contracts.
 
 ## Boundary rules

@@ -9,7 +9,7 @@ declared scope, contracts, implementation and reusable tests are complete.
 | `source_intake` | `1.1.0` | stable | Register sources, acquire video/metadata/subtitles, inspect artifacts and calculate readiness. |
 | `data_platform` | `0.2.0` | candidate | Durable artifact storage, promotion and SQLite source catalog. |
 | `frontend` | `0.2.0` | candidate | Operator UI for source registration, processing and status inspection. |
-| `knowledge_processing` | planned | planned | Prepare structured knowledge from source artifacts. |
+| `knowledge_processing` | `0.1.0` | candidate | Prepare structured advisory knowledge from source artifacts. |
 | `strategy_blueprint` | planned | planned | Derive a controlled description of required strategy agents, tools and flows. |
 | `strategy_engine` | planned | planned | Build and evaluate setup candidates from approved strategy inputs. |
 | `market_data` | planned | planned | Receive and normalize market data from providers. |
