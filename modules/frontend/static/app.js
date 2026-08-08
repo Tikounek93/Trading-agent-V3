@@ -230,17 +230,17 @@ function showCorrectionEditor(sourceId, targetId = "") {
 
 function renderUnits(units) {
   if (!units.length) return '<p class="empty">No knowledge units extracted.</p>';
-  return `<div class="detail-list">${units.map((unit) => `<article class="knowledge-card"><div class="knowledge-card-head"><span class="score-pill">${escapeHtml(unit.relevance || "unscored")} · ${escapeHtml(unit.knowledge_score ?? "-")}</span><button class="text-button" type="button" data-correction-target="${escapeHtml(unit.unit_id)}">Correct</button></div><p>${escapeHtml(unit.text)}</p><div class="tag-row">${(unit.concepts || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}${(unit.setup_stages || []).map((tag) => `<span class="tag muted-tag">${escapeHtml(tag)}</span>`).join("")}</div><small>Source chunk: ${escapeHtml(unit.source_chunk_id)}</small></article>`).join("")}</div>`;
+  return `<div class="detail-list">${units.map((unit) => `<article class="knowledge-card"><div class="knowledge-card-head"><span class="score-pill">${escapeHtml(unit.relevance || "unscored")} · ${escapeHtml(unit.knowledge_score ?? "-")}</span><button class="text-button" type="button" data-correction-target="${escapeHtml(unit.unit_id)}">Correct</button></div><p>${escapeHtml(cleanTranscriptText(unit.text))}</p><div class="tag-row">${(unit.concepts || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join("")}${(unit.setup_stages || []).map((tag) => `<span class="tag muted-tag">${escapeHtml(tag)}</span>`).join("")}</div><small>${formatTime(unit.source_start)} - ${formatTime(unit.source_end)} · Source chunk: ${escapeHtml(unit.source_chunk_id)}</small></article>`).join("")}</div>`;
 }
 
 function renderChunks(chunks) {
   if (!chunks.length) return '<p class="empty">No semantic chunks available.</p>';
-  return `<div class="detail-list">${chunks.map((chunk) => `<article class="knowledge-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><p>${escapeHtml(chunk.semantic?.summary || chunk.combined_transcript || "")}</p><small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · ${escapeHtml((chunk.semantic?.topics || []).join(", "))}</small></article>`).join("")}</div>`;
+  return `<div class="detail-list">${chunks.map((chunk) => `<article class="knowledge-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><p>${escapeHtml(cleanTranscriptText(chunk.semantic?.summary || chunk.combined_transcript || ""))}</p><small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · ${escapeHtml((chunk.semantic?.topics || []).join(", "))}</small></article>`).join("")}</div>`;
 }
 
 function renderTimeline(segments) {
   if (!segments.length) return '<p class="empty">No timeline segments available.</p>';
-  return `<div class="detail-list timeline-list">${segments.map((segment, index) => `<article class="timeline-row"><span class="timecode">${formatTime(segment.start)}<br>${formatTime(segment.end)}</span><div><p>${escapeHtml(segment.transcript || "")}</p><small>${segment.frame_paths?.length || 0} frames · ${segment.ocr_texts?.length || 0} OCR records · ${segment.events?.length || 0} events</small></div><button class="text-button" type="button" data-correction-target="segment_${index}">Correct</button></article>`).join("")}</div>`;
+  return `<div class="detail-list timeline-list">${segments.map((segment, index) => `<article class="timeline-row"><span class="timecode">${formatTime(segment.start)}<br>${formatTime(segment.end)}</span><div><p>${escapeHtml(cleanTranscriptText(segment.transcript || ""))}</p><small>${segment.frame_paths?.length || 0} frames · ${segment.ocr_texts?.length || 0} OCR records · ${segment.events?.length || 0} events</small></div><button class="text-button" type="button" data-correction-target="segment_${index}">Correct</button></article>`).join("")}</div>`;
 }
 
 function renderCorrections(corrections) {
@@ -251,6 +251,14 @@ function renderCorrections(corrections) {
 function formatTime(value) {
   const seconds = Math.max(0, Number(value) || 0);
   return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`;
+}
+
+function cleanTranscriptText(value) {
+  return String(value ?? "")
+    .replace(/<(?:\d{2}:)?\d{2}:\d{2}[.,]\d{3}>/g, "")
+    .replace(/<\/?c(?:\.[^>]*)?>/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 async function loadKnowledge(sourceId) {
