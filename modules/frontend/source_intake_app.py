@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import mimetypes
 import threading
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -507,6 +508,22 @@ def create_server(
                 return
             if path == "/api/knowledge/status":
                 self._send_json(application.knowledge_status())
+                return
+            if path.startswith("/api/source-artifacts/"):
+                remainder = path.removeprefix("/api/source-artifacts/")
+                source_part, separator, relative_part = remainder.partition("/")
+                source_id = unquote(source_part).strip()
+                relative_path = unquote(relative_part).strip() if separator else ""
+                root = (application.config.durable_root / source_id).resolve()
+                candidate = (root / relative_path).resolve()
+                if not source_id or "/" in source_id or not relative_path:
+                    self._send_json({"error": "invalid artifact path"}, HTTPStatus.BAD_REQUEST)
+                    return
+                if candidate != root and root not in candidate.parents:
+                    self._send_json({"error": "artifact path escapes source root"}, HTTPStatus.FORBIDDEN)
+                    return
+                content_type = mimetypes.guess_type(candidate.name)[0] or "application/octet-stream"
+                self._send_file(candidate, content_type)
                 return
             if path.startswith("/api/knowledge/"):
                 source_id = unquote(path.removeprefix("/api/knowledge/")).strip("/")

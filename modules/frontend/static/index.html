@@ -8,7 +8,7 @@
 </head>
 <body>
   <div class="app-shell">
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
       <div class="brand">
         <span class="brand-mark">TA</span>
         <div><strong>Trading Agent</strong><small>v3 workspace</small></div>
@@ -43,6 +43,7 @@
           <h1 id="view-title">Overview</h1>
         </div>
         <div class="topbar-actions">
+          <button class="icon-button menu-toggle" id="menu-toggle" type="button" title="Open navigation" aria-label="Open navigation" aria-expanded="false">☰</button>
           <span class="status-chip" id="module-status">Checking status</span>
           <button class="icon-button" id="refresh" type="button" title="Refresh data" aria-label="Refresh data">↻</button>
         </div>
@@ -119,6 +120,7 @@
       </main>
     </div>
   </div>
+  <button class="menu-scrim" id="menu-scrim" type="button" aria-label="Close navigation" hidden></button>
   <script src="/static/app.js"></script>
 </body>
 </html>

@@ -8,6 +8,9 @@ const fileInput = document.querySelector("#local-file");
 const urlGroup = document.querySelector("#url-input-group");
 const fileGroup = document.querySelector("#file-input-group");
 const operationsFieldset = document.querySelector("#operations-fieldset");
+const sidebar = document.querySelector("#sidebar");
+const menuToggle = document.querySelector("#menu-toggle");
+const menuScrim = document.querySelector("#menu-scrim");
 
 let latestStatus = null;
 let selectedKnowledgeSource = null;
@@ -65,6 +68,7 @@ function syncInputMode(forceMode = null) {
 
 function activateView(view) {
   if (!viewTitles[view]) return;
+  setMenuOpen(false);
   document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
     item.classList.toggle("active", item.dataset.view === view);
   });
@@ -73,6 +77,15 @@ function activateView(view) {
   });
   document.querySelector("#view-kicker").textContent = viewTitles[view][0];
   document.querySelector("#view-title").textContent = viewTitles[view][1];
+}
+
+function setMenuOpen(open) {
+  sidebar.classList.toggle("open", open);
+  menuScrim.hidden = !open;
+  menuToggle.setAttribute("aria-expanded", String(open));
+  menuToggle.setAttribute("aria-label", open ? "Close navigation" : "Open navigation");
+  menuToggle.title = open ? "Close navigation" : "Open navigation";
+  document.body.classList.toggle("menu-open", open);
 }
 
 function renderArtifacts(source) {
@@ -248,7 +261,16 @@ function renderChunks(chunks) {
 function renderOCR(chunks) {
   const ocrChunks = chunks.filter((chunk) => chunk.combined_ocr || chunk.cleaned_ocr);
   if (!ocrChunks.length) return '<div class="ocr-empty"><strong>No OCR data is available for this source.</strong><p>OCR is created from video frames. This source currently contains subtitles and video, but no OCR records or frame index.</p></div>';
-  return `<div class="detail-list">${ocrChunks.map((chunk) => `<article class="knowledge-card ocr-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><div class="ocr-columns"><div><span class="ocr-label">OCR from frame</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.combined_ocr))}</p></div><div><span class="ocr-label">After cleanup</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.cleaned_ocr))}</p></div></div><small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · quality ${escapeHtml(chunk.ocr_quality_score ?? "-")} · ${chunk.frame_paths?.length || 0} frames</small></article>`).join("")}</div>`;
+  return `<div class="detail-list">${ocrChunks.map((chunk) => `<article class="knowledge-card ocr-card"><div class="knowledge-card-head"><strong>${escapeHtml(chunk.chunk_id)}</strong><button class="text-button" type="button" data-correction-target="${escapeHtml(chunk.chunk_id)}">Correct</button></div><div class="ocr-columns"><div><span class="ocr-label">OCR from frame</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.combined_ocr))}</p></div><div><span class="ocr-label">After cleanup</span><p class="ocr-text">${escapeHtml(cleanOCRText(chunk.cleaned_ocr))}</p></div></div>${renderOCRFrames(chunk.frame_paths || [], selectedKnowledgePayload?.source_id)}<small>${escapeHtml(chunk.start)} - ${escapeHtml(chunk.end)} · quality ${escapeHtml(chunk.ocr_quality_score ?? "-")} · ${chunk.frame_paths?.length || 0} frames</small></article>`).join("")}</div>`;
+}
+
+function renderOCRFrames(framePaths, sourceId) {
+  const paths = framePaths.filter(Boolean).slice(0, 8);
+  if (!paths.length) return '<p class="ocr-no-frame">No image is linked to this OCR record.</p>';
+  return `<div class="ocr-frame-grid">${paths.map((path, index) => {
+    const url = `/api/source-artifacts/${encodeURIComponent(sourceId)}/${path.split("/").map(encodeURIComponent).join("/")}`;
+    return `<a class="ocr-frame" href="${url}" target="_blank" rel="noreferrer"><img src="${url}" alt="OCR frame ${index + 1}" loading="lazy"><span>${escapeHtml(path.split("/").pop())}</span></a>`;
+  }).join("")}</div>`;
 }
 
 function renderTimeline(segments) {
@@ -326,6 +348,11 @@ async function refreshStatus() {
 
 kindSelect.addEventListener("change", () => syncInputMode());
 form.querySelectorAll("input[name='source_mode']").forEach((input) => input.addEventListener("change", () => syncInputMode()));
+menuToggle.addEventListener("click", () => setMenuOpen(!sidebar.classList.contains("open")));
+menuScrim.addEventListener("click", () => setMenuOpen(false));
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") setMenuOpen(false);
+});
 syncInputMode("url");
 
 document.querySelectorAll(".nav-item[data-view]").forEach((item) => item.addEventListener("click", () => activateView(item.dataset.view)));
